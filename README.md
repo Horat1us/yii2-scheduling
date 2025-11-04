@@ -519,7 +519,7 @@ If migrating from the old module structure:
 
 ## License
 
-This project is open-sourced software.
+This project is open-sourced software under [MIT license](./LICENSE.md).
 
 ## Support
 
