@@ -235,15 +235,6 @@ new Schedule\Commands\ShellCommand('php artisan queue:work --once');
 new Schedule\Commands\ShellCommand('curl -X POST https://example.com/webhook');
 ```
 
-#### Callable Command
-
-```php
-new Schedule\Commands\CallableCommand(
-    fn() => file_put_contents('/tmp/heartbeat', time()),
-    description: 'Update heartbeat file'
-);
-```
-
 ## Console Commands
 
 ### Run Due Tasks
@@ -443,7 +434,7 @@ composer test
 
 Tests cover:
 - ✅ All filter types (Cron, DateTime, Closure, Boolean, Environment)
-- ✅ All command types (YiiConsoleCommand, ShellCommand, CallableCommand)
+- ✅ All command types (YiiConsoleCommand, ShellCommand)
 - ✅ Task creation and validation
 - ✅ TaskEvaluator business logic (AND filter logic)
 - ✅ ScheduleManager (providers, caching, singleton)
@@ -495,7 +486,7 @@ See the [CI workflow](.github/workflows/ci.yml) for details.
 - **TaskEvaluator**: Service evaluating task filters (business logic)
 - **Task**: Plain data object holding task configuration
 - **Filters**: Determine when tasks should run (Cron, DateTime, Closure, Boolean, Environment)
-- **Commands**: Define what to execute (YiiConsoleCommand, ShellCommand, CallableCommand)
+- **Commands**: Define what to execute (YiiConsoleCommand, ShellCommand)
 - **Events**: BeforeTaskEvent, AfterTaskEvent
 - **LoggingBehavior**: Yii2 behavior for automatic logging
 

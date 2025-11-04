@@ -45,7 +45,10 @@ class ListAction extends base\Action
         }
 
         $now = Carbon::now();
-        $this->controller->stdout(sprintf("Scheduled Tasks (current time: %s)\n\n", $now->toDateTimeString()), Console::BOLD);
+        $this->controller->stdout(
+            sprintf("Scheduled Tasks (current time: %s)\n\n", $now->toDateTimeString()),
+            Console::BOLD
+        );
 
         foreach ($tasks as $index => $task) {
             $this->displayTask($task, $index + 1, $now);
