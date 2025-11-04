@@ -8,17 +8,20 @@ use Horat1us\Yii\Schedule\Contracts\CommandInterface;
 use Symfony\Component\Process\Process;
 
 /**
- * Command that executes a PHP callable (closure or function).
+ * Command that executes a PHP callable (array callable or named function).
  *
- * The callable is serialized and executed in a separate PHP process.
- * Note: The callable must be serializable (no closure over $this or variables from outer scope).
+ * IMPORTANT: This command uses eval to execute code. Use with caution.
+ * Closures are NOT supported because they cannot be serialized.
  *
- * Example: new CallableCommand(fn() => file_put_contents('/tmp/test.txt', 'Hello'))
+ * Example: new CallableCommand([MyClass::class, 'method'])
+ *          new CallableCommand('some_function')
+ *
+ * For closures, use ShellCommand with a script file instead.
  */
 readonly class CallableCommand implements CommandInterface
 {
     /**
-     * @param callable $callable The callable to execute
+     * @param callable $callable The callable to execute (array or string, no closures)
      * @param string|null $description Optional human-readable description
      */
     public function __construct(
@@ -29,14 +32,18 @@ readonly class CallableCommand implements CommandInterface
 
     public function toProcess(): Process
     {
-        $serialized = base64_encode(serialize($this->callable));
-        $command = sprintf(
-            '%s -r %s',
-            PHP_BINARY,
-            escapeshellarg(
-                'call_user_func(unserialize(base64_decode(\'' . $serialized . '\')));'
-            )
-        );
+        // Build the command string for array callables or function names
+        if (is_array($this->callable)) {
+            [$class, $method] = $this->callable;
+            $className = is_object($class) ? get_class($class) : $class;
+            $code = "call_user_func(['{$className}', '{$method}']);";
+        } elseif (is_string($this->callable)) {
+            $code = "call_user_func('{$this->callable}');";
+        } else {
+            throw new \InvalidArgumentException('CallableCommand only supports array callables and function names, not closures');
+        }
+
+        $command = sprintf('%s -r %s', PHP_BINARY, escapeshellarg($code));
 
         return Process::fromShellCommandline($command);
     }

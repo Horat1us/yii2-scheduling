@@ -34,7 +34,7 @@ class ScheduleManager extends Component
 
     private TaskEvaluator $evaluator;
 
-    public function __construct(TaskEvaluator $evaluator = null, $config = [])
+    public function __construct(?TaskEvaluator $evaluator = null, $config = [])
     {
         parent::__construct($config);
         $this->evaluator = $evaluator ?? new TaskEvaluator();

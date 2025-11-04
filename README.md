@@ -1,5 +1,10 @@
 # Yii2 Scheduling Package
 
+[![CI](https://github.com/horat1us/yii2-scheduling/workflows/CI/badge.svg)](https://github.com/horat1us/yii2-scheduling/actions)
+[![codecov](https://codecov.io/gh/horat1us/yii2-scheduling/branch/master/graph/badge.svg)](https://codecov.io/gh/horat1us/yii2-scheduling)
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.4-8892BF.svg)](https://php.net/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A modern, flexible task scheduling library for Yii2 applications using PHP 8.4+ features.
 
 ## Features
@@ -408,9 +413,44 @@ readonly class BusinessDaysFilter implements FilterInterface
 
 ## Testing
 
+The package includes comprehensive PHPUnit tests with custom Yii2 bootstrap (no standard Yii2 test framework required).
+
+### Run All Tests
+
 ```bash
 composer test
+# or
+./vendor/bin/phpunit
 ```
+
+### Run Specific Test Suites
+
+```bash
+# Unit tests only
+./vendor/bin/phpunit --testsuite=Unit
+
+# Integration tests only
+./vendor/bin/phpunit --testsuite=Integration
+```
+
+### Run Specific Test Classes
+
+```bash
+./vendor/bin/phpunit tests/Unit/Filters/CronTest.php
+```
+
+### Test Coverage
+
+Tests cover:
+- ✅ All filter types (Cron, DateTime, Closure, Boolean, Environment)
+- ✅ All command types (YiiConsoleCommand, ShellCommand, CallableCommand)
+- ✅ Task creation and validation
+- ✅ TaskEvaluator business logic (AND filter logic)
+- ✅ ScheduleManager (providers, caching, singleton)
+- ✅ Event system (BeforeTaskEvent, AfterTaskEvent)
+- ✅ Bootstrap integration and DI container setup
+
+Coverage reports are automatically uploaded to [Codecov](https://codecov.io/gh/horat1us/yii2-scheduling).
 
 ## Code Style
 
@@ -418,6 +458,33 @@ composer test
 composer lint
 composer phpcbf
 ```
+
+## Continuous Integration
+
+This package uses GitHub Actions for continuous integration:
+
+### Automated Checks
+
+Every push and pull request triggers:
+- ✅ **Code Style Check** - PSR-12 compliance validation
+- ✅ **Unit Tests** - Full test suite execution
+- ✅ **Integration Tests** - Bootstrap and DI container tests
+- ✅ **Code Coverage** - Coverage reports uploaded to Codecov
+
+### Multi-Version Support
+
+Tests run on:
+- PHP 8.4 (current)
+- More versions can be added to the matrix as needed
+
+### Workflow Features
+
+- **Dependency Caching** - Composer dependencies cached between runs
+- **Coverage Reporting** - Automatic coverage upload to Codecov
+- **Parallel Jobs** - Linting and testing run in parallel
+- **Fast Feedback** - Using PCOV for fast coverage generation
+
+See the [CI workflow](.github/workflows/ci.yml) for details.
 
 ## Architecture
 

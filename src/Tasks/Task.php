@@ -6,6 +6,7 @@ namespace Horat1us\Yii\Schedule\Tasks;
 
 use Horat1us\Yii\Schedule\Contracts\CommandInterface;
 use Horat1us\Yii\Schedule\Contracts\FilterInterface;
+use Horat1us\Yii\Schedule\Contracts\TaskInterface;
 use Horat1us\Yii\Schedule\Exceptions\InvalidTaskException;
 use Horat1us\Yii\Schedule\Filters\BooleanFilter;
 use Horat1us\Yii\Schedule\Filters\ClosureFilter;
