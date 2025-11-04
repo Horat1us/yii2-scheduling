@@ -44,7 +44,7 @@ class ListAction extends base\Action
             return ExitCode::OK;
         }
 
-        $now = Carbon::now();
+        $now = Carbon::parse($this->controller->currentTime);
         $this->controller->stdout(
             sprintf("Scheduled Tasks (current time: %s)\n\n", $now->toDateTimeString()),
             Console::BOLD

@@ -12,6 +12,8 @@ use yii\console\Controller as BaseController;
  * Usage:
  *   php yii schedule/run     - Run all due tasks
  *   php yii schedule/list    - List all scheduled tasks
+ *   php yii schedule/run --currentTime="2025-01-01 12:00:00"  - Test with specific time
+ *   php yii schedule/list -t "2025-01-01 12:00:00"            - List tasks for specific time
  *
  * This controller is a thin wrapper around action classes.
  * All business logic is contained in RunAction and ListAction.
@@ -24,6 +26,14 @@ class Controller extends BaseController
     public $defaultAction = 'list';
 
     /**
+     * Current time for scheduling (defaults to "now").
+     * Useful for testing scheduled tasks on production or running missed schedules.
+     *
+     * @var string
+     */
+    public $currentTime = 'now';
+
+    /**
      * Declare inline actions.
      *
      * @return array
@@ -34,5 +44,21 @@ class Controller extends BaseController
             'run' => RunAction::class,
             'list' => ListAction::class,
         ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function options($actionID): array
+    {
+        return array_merge(parent::options($actionID), ['currentTime']);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function optionAliases(): array
+    {
+        return array_merge(parent::optionAliases(), ['t' => 'currentTime']);
     }
 }

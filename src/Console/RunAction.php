@@ -10,7 +10,8 @@ use Horat1us\Yii\Schedule\Events\AfterTaskEvent;
 use Horat1us\Yii\Schedule\Events\BeforeTaskEvent;
 use Horat1us\Yii\Schedule\ScheduleManager;
 use Horat1us\Yii\Schedule\TaskRunner;
-use yii\console\Action;
+use yii\base\Action;
+use yii\console\ExitCode;
 use yii\helpers\Console;
 
 /**
@@ -21,12 +22,6 @@ use yii\helpers\Console;
  */
 class RunAction extends Action
 {
-    /**
-     * Current time for scheduling (defaults to "now").
-     * Useful for testing specific times.
-     */
-    public string $currentTime = 'now';
-
     private ScheduleManager $scheduleManager;
     private TaskRunner $taskRunner;
 
@@ -44,12 +39,12 @@ class RunAction extends Action
 
     public function run(): int
     {
-        $dateTime = Carbon::parse($this->currentTime);
+        $dateTime = Carbon::parse($this->controller->currentTime);
         $dueTasks = $this->scheduleManager->getDueTasks($dateTime);
 
         if (empty($dueTasks)) {
             $this->controller->stdout("No tasks are due at {$dateTime->toDateTimeString()}\n", Console::FG_YELLOW);
-            return self::EXIT_CODE_NORMAL;
+            return ExitCode::OK;
         }
 
         $this->controller->stdout(
@@ -65,7 +60,7 @@ class RunAction extends Action
 
         $this->controller->stdout("\nAll tasks completed.\n", Console::FG_GREEN);
 
-        return self::EXIT_CODE_NORMAL;
+        return ExitCode::OK;
     }
 
     private function attachEventHandlers(): void
@@ -99,15 +94,5 @@ class RunAction extends Action
                 }
             }
         });
-    }
-
-    public function options($actionID): array
-    {
-        return array_merge(parent::options($actionID), ['currentTime']);
-    }
-
-    public function optionAliases(): array
-    {
-        return array_merge(parent::optionAliases(), ['t' => 'currentTime']);
     }
 }

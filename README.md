@@ -243,7 +243,7 @@ new Schedule\Commands\ShellCommand('curl -X POST https://example.com/webhook');
 # Run all tasks that are due now
 php yii schedule/run
 
-# Run tasks for a specific time (useful for testing)
+# Run tasks for a specific time (useful for testing or running missed schedules)
 php yii schedule/run --currentTime="2025-01-01 12:00:00"
 php yii schedule/run -t "2025-01-01 12:00:00"
 ```
@@ -251,8 +251,18 @@ php yii schedule/run -t "2025-01-01 12:00:00"
 ### List All Tasks
 
 ```bash
+# List all scheduled tasks (shows current status)
 php yii schedule/list
+
+# List tasks for a specific time (useful for testing what would run at that time)
+php yii schedule/list --currentTime="2025-01-01 12:00:00"
+php yii schedule/list -t "2025-01-01 12:00:00"
 ```
+
+**Note**: The `--currentTime` option (or `-t` alias) can be used with both `run` and `list` commands. This is useful for:
+- Testing scheduled tasks on production without waiting for the actual time
+- Running missed schedules after downtime
+- Verifying task configuration for specific times
 
 Example output:
 ```
