@@ -30,7 +30,6 @@ tests/ export-ignore
 legacy/ export-ignore
 
 # Documentation
-README.md export-ignore
 .github/CONTRIBUTING.md export-ignore
 .github/CI_SETUP.md export-ignore
 .github/CODECOV_SETUP.md export-ignore
