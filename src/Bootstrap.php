@@ -40,6 +40,12 @@ class Bootstrap implements BootstrapInterface
      */
     public bool $enableLogging = true;
 
+    /**
+     * @var array|string LoggingBehavior definition attached to TaskRunner when logging is enabled,
+     * e.g. `['class' => LoggingBehavior::class, 'logStart' => false, 'logOutput' => false]`
+     */
+    public array|string $loggingBehavior = LoggingBehavior::class;
+
     public function bootstrap($app): void
     {
         // Only register controller in console applications
@@ -55,7 +61,7 @@ class Bootstrap implements BootstrapInterface
             $runner = new TaskRunner();
 
             if ($this->enableLogging) {
-                $runner->attachBehavior('logging', LoggingBehavior::class);
+                $runner->attachBehavior('logging', $this->loggingBehavior);
             }
 
             return $runner;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Horat1us\Yii\Schedule\Tests\Integration;
 
+use Horat1us\Yii\Schedule\Behaviors\LoggingBehavior;
 use Horat1us\Yii\Schedule\Bootstrap;
 use Horat1us\Yii\Schedule\Console\Controller;
 use Horat1us\Yii\Schedule\ScheduleManager;
@@ -138,6 +139,25 @@ class BootstrapTest extends TestCase
         $runner = \Yii::$container->get(TaskRunner::class);
 
         $this->assertArrayHasKey('logging', $runner->getBehaviors());
+    }
+
+    public function testBootstrapConfiguresLoggingBehavior(): void
+    {
+        $app = $this->createApplication();
+        $bootstrap = new Bootstrap();
+        $bootstrap->loggingBehavior = [
+            'class' => LoggingBehavior::class,
+            'logStart' => false,
+            'logOutput' => false,
+        ];
+        $bootstrap->bootstrap($app);
+
+        $behavior = \Yii::$container->get(TaskRunner::class)->getBehavior('logging');
+
+        $this->assertInstanceOf(LoggingBehavior::class, $behavior);
+        $this->assertFalse($behavior->logStart);
+        $this->assertFalse($behavior->logOutput);
+        $this->assertTrue($behavior->logSuccess);
     }
 
     public function testBootstrapCanDisableLogging(): void
