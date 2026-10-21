@@ -84,7 +84,7 @@ class RunAction extends Action
                 $this->controller->stdout("✓ Success: ", Console::FG_GREEN);
                 $this->controller->stdout("{$description} ({$executionTime}s)\n");
             } else {
-                $this->controller->stdout("✗ Failed: ", Console::FG_RED);
+                $this->controller->stdout($event->timedOut ? "✗ Timed out: " : "✗ Failed: ", Console::FG_RED);
                 $this->controller->stdout("{$description} ({$executionTime}s)\n");
 
                 // Show error output
