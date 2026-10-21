@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Horat1us\Yii\Schedule\Tests\Unit\Console;
 
 use Carbon\Carbon;
+use Horat1us\Yii\Schedule\Commands\ShellCommand;
 use Horat1us\Yii\Schedule\Console\Controller;
 use Horat1us\Yii\Schedule\Console\RunAction;
 use Horat1us\Yii\Schedule\Contracts\TaskInterface;
@@ -12,7 +13,9 @@ use Horat1us\Yii\Schedule\Events\AfterTaskEvent;
 use Horat1us\Yii\Schedule\Events\BeforeTaskEvent;
 use Horat1us\Yii\Schedule\ScheduleManager;
 use Horat1us\Yii\Schedule\TaskRunner;
+use Horat1us\Yii\Schedule\Tasks\Task;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Process\Process;
 use yii\console\Controller as BaseController;
 use yii\console\ExitCode;
 
@@ -174,5 +177,50 @@ class RunActionTest extends TestCase
         );
 
         $action->run();
+    }
+
+    public function testTimedOutTaskIsReported(): void
+    {
+        $task = new Task(
+            commands: new ShellCommand('sleep 10'),
+            timeout: 1,
+            description: 'Slow Task',
+        );
+
+        $this->scheduleManager
+            ->method('getDueTasks')
+            ->willReturn([$task]);
+
+        $output = '';
+        $this->controller
+            ->method('stdout')
+            ->willReturnCallback(function (string $string) use (&$output) {
+                $output .= $string;
+                return strlen($string);
+            });
+
+        // Event handlers are real, tasks are not started
+        $taskRunner = $this->getMockBuilder(TaskRunner::class)
+            ->onlyMethods(['runTasks'])
+            ->getMock();
+
+        $action = new RunAction(
+            'run',
+            $this->controller,
+            $this->scheduleManager,
+            $taskRunner
+        );
+
+        $action->run();
+
+        $process = $this->createStub(Process::class);
+        $process->method('isSuccessful')->willReturn(false);
+        $process->method('getErrorOutput')->willReturn('');
+        $taskRunner->trigger(
+            TaskRunner::EVENT_AFTER_TASK,
+            new AfterTaskEvent($task, new \DateTime(), [$process], 1.0, timedOut: true)
+        );
+
+        $this->assertStringContainsString('✗ Timed out: Slow Task (1s)', $output);
     }
 }

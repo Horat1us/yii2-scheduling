@@ -91,22 +91,25 @@ class LoggingBehavior extends Behavior
     public function onAfterTask(AfterTaskEvent $event): void
     {
         $description = $event->task->getDescription() ?? 'Unnamed task';
-        $executionTime = round($event->executionTime, 2);
-        $processCount = count($event->processes);
-        $success = $event->isSuccessful();
 
-        $message = sprintf(
-            "Task %s: %s (%d processes, %.2fs)",
-            $success ? 'completed' : 'failed',
-            $description,
-            $processCount,
-            $executionTime
-        );
-
-        if ($success) {
-            Yii::info($message, $this->logCategory);
+        // Error messages have no run details, so error trackers group them by task
+        if ($event->timedOut) {
+            Yii::error(
+                "Task timed out after {$event->task->getTimeout()}s: {$description}",
+                $this->logCategory
+            );
+        } elseif (!$event->isSuccessful()) {
+            Yii::error("Task failed: {$description}", $this->logCategory);
         } else {
-            Yii::error($message, $this->logCategory);
+            Yii::info(
+                sprintf(
+                    "Task completed: %s (%d processes, %.2fs)",
+                    $description,
+                    count($event->processes),
+                    round($event->executionTime, 2)
+                ),
+                $this->logCategory
+            );
         }
 
         // Log output if enabled
