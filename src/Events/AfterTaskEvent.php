@@ -17,12 +17,14 @@ class AfterTaskEvent extends TaskEvent
      * @param \DateTimeInterface $scheduledTime The time when the task was scheduled
      * @param Process[] $processes The processes that were executed
      * @param float $executionTime Execution time in seconds
+     * @param bool $timedOut Whether the task was stopped because it exceeded its timeout
      */
     public function __construct(
         TaskInterface $task,
         public readonly \DateTimeInterface $scheduledTime,
         public readonly array $processes,
         public readonly float $executionTime,
+        public readonly bool $timedOut = false,
     ) {
         parent::__construct($task);
     }

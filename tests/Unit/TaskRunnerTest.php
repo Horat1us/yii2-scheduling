@@ -22,6 +22,9 @@ class TaskRunnerTest extends TestCase
     /** @var array<string, bool> Task success by description, in the order tasks finished */
     private array $results = [];
 
+    /** @var array<string, bool> Whether the task timed out, by description */
+    private array $timedOut = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -30,6 +33,7 @@ class TaskRunnerTest extends TestCase
         mkdir($this->directory);
         $this->events = [];
         $this->results = [];
+        $this->timedOut = [];
     }
 
     protected function tearDown(): void
@@ -109,6 +113,7 @@ class TaskRunnerTest extends TestCase
             $this->events
         );
         $this->assertSame(['fast' => true, 'slow' => false], $this->results);
+        $this->assertSame(['fast' => false, 'slow' => true], $this->timedOut);
     }
 
     public function testStartedTasksAreAwaitedWhenLaterTaskFailsToStart(): void
@@ -145,6 +150,7 @@ class TaskRunnerTest extends TestCase
         $runner->on(TaskRunner::EVENT_AFTER_TASK, function (AfterTaskEvent $event) {
             $this->events[] = 'after:' . $event->task->getDescription();
             $this->results[$event->task->getDescription()] = $event->isSuccessful();
+            $this->timedOut[$event->task->getDescription()] = $event->timedOut;
         });
 
         return $runner;
