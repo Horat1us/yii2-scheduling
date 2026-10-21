@@ -43,6 +43,12 @@ class LoggingBehavior extends Behavior
     public bool $logStart = true;
 
     /**
+     * Whether to log successful task completion.
+     * Failed and timed out tasks are always logged.
+     */
+    public bool $logSuccess = true;
+
+    /**
      * Whether to log task output.
      */
     public bool $logOutput = true;
@@ -100,7 +106,7 @@ class LoggingBehavior extends Behavior
             );
         } elseif (!$event->isSuccessful()) {
             Yii::error("Task failed: {$description}", $this->logCategory);
-        } else {
+        } elseif ($this->logSuccess) {
             Yii::info(
                 sprintf(
                     "Task completed: %s (%d processes, %.2fs)",
