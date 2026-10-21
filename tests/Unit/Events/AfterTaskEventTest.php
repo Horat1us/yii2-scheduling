@@ -25,6 +25,16 @@ class AfterTaskEventTest extends TestCase
         $this->assertSame($scheduledTime, $event->scheduledTime);
         $this->assertSame($processes, $event->processes);
         $this->assertSame(1.23, $event->executionTime);
+        $this->assertFalse($event->timedOut);
+    }
+
+    public function testEventConstructionWithTimeout(): void
+    {
+        $task = new Task(commands: new ShellCommand('sleep 10'), timeout: 1);
+
+        $event = new AfterTaskEvent($task, new \DateTime(), [], 1.0, timedOut: true);
+
+        $this->assertTrue($event->timedOut);
     }
 
     public function testIsSuccessfulWithAllSuccessfulProcesses(): void

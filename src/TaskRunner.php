@@ -7,6 +7,7 @@ namespace Horat1us\Yii\Schedule;
 use Horat1us\Yii\Schedule\Contracts\TaskInterface;
 use Horat1us\Yii\Schedule\Events\AfterTaskEvent;
 use Horat1us\Yii\Schedule\Events\BeforeTaskEvent;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 use yii\base\Component;
 
@@ -74,7 +75,7 @@ class TaskRunner extends Component
      *
      * @param TaskInterface $task
      * @param \DateTimeInterface $scheduledTime
-     * @return array{task: TaskInterface, processes: Process[], startTime: float}
+     * @return array{task: TaskInterface, processes: Process[], startTime: float, timedOut: bool}
      */
     private function startTask(TaskInterface $task, \DateTimeInterface $scheduledTime): array
     {
@@ -96,13 +97,14 @@ class TaskRunner extends Component
             'task' => $task,
             'processes' => $processes,
             'startTime' => $startTime,
+            'timedOut' => false,
         ];
     }
 
     /**
      * Wait for all started tasks, checking timeouts and triggering the after event as each task completes.
      *
-     * @param array<array{task: TaskInterface, processes: Process[], startTime: float}> $runs
+     * @param array<array{task: TaskInterface, processes: Process[], startTime: float, timedOut: bool}> $runs
      * @param \DateTimeInterface $scheduledTime
      * @return void
      */
@@ -110,7 +112,9 @@ class TaskRunner extends Component
     {
         while (!empty($runs)) {
             foreach ($runs as $index => $run) {
+                $timedOut = $this->checkTimeouts($run['processes']) || $run['timedOut'];
                 if ($this->isRunning($run['processes'])) {
+                    $runs[$index]['timedOut'] = $timedOut;
                     continue;
                 }
                 unset($runs[$index]);
@@ -120,7 +124,7 @@ class TaskRunner extends Component
                 // Trigger after event
                 $this->trigger(
                     self::EVENT_AFTER_TASK,
-                    new AfterTaskEvent($run['task'], $scheduledTime, $run['processes'], $executionTime)
+                    new AfterTaskEvent($run['task'], $scheduledTime, $run['processes'], $executionTime, $timedOut)
                 );
             }
 
@@ -132,7 +136,28 @@ class TaskRunner extends Component
     }
 
     /**
-     * Check timeouts and whether any of the processes is still running.
+     * Stop processes that exceeded their timeout.
+     *
+     * @param Process[] $processes
+     * @return bool Whether any of the processes timed out
+     */
+    private function checkTimeouts(array $processes): bool
+    {
+        $timedOut = false;
+        foreach ($processes as $process) {
+            try {
+                $process->checkTimeout();
+            } catch (ProcessTimedOutException) {
+                // Process timed out, it's already stopped by checkTimeout()
+                $timedOut = true;
+            }
+        }
+
+        return $timedOut;
+    }
+
+    /**
+     * Check whether any of the processes is still running.
      *
      * Every process is polled, so their output pipes are read even while other processes run.
      *
@@ -143,13 +168,6 @@ class TaskRunner extends Component
     {
         $isRunning = false;
         foreach ($processes as $process) {
-            // Check timeout
-            try {
-                $process->checkTimeout();
-            } catch (\Throwable) {
-                // Process timed out, it's already stopped by checkTimeout()
-            }
-
             if ($process->isRunning()) {
                 $isRunning = true;
             }
