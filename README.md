@@ -11,6 +11,7 @@ A modern, flexible task scheduling library for Yii2 applications using PHP 8.4+ 
 
 - **Provider Pattern**: Lazy-load tasks only when scheduling is triggered
 - **Multiple Commands**: Tasks can execute multiple commands in parallel
+- **Parallel Tasks**: Tasks due at the same time run in parallel, so a slow task doesn't delay the others
 - **Flexible Filters**: Cron expressions, fixed datetime, custom closures, environment checks
 - **Event-Driven**: Task lifecycle events with built-in logging behavior
 - **SOLID Design**: Separated concerns with services, plain data objects, and dependency injection
@@ -311,6 +312,9 @@ $runner->on(TaskRunner::EVENT_AFTER_TASK, function (AfterTaskEvent $event) {
 });
 ```
 
+All due tasks start at once, so `EVENT_BEFORE_TASK` is triggered for every task first.
+`EVENT_AFTER_TASK` is triggered for each task as soon as all its commands finish, in completion order.
+
 ### Built-in Logging Behavior
 
 Logging is automatically enabled via `LoggingBehavior` (uses Yii2 logger):
@@ -492,7 +496,7 @@ See the [CI workflow](.github/workflows/ci.yml) for details.
 ### Components
 
 - **ScheduleManager**: Singleton component managing task providers and static tasks
-- **TaskRunner**: Component executing tasks with event support
+- **TaskRunner**: Component executing due tasks in parallel with event support
 - **TaskEvaluator**: Service evaluating task filters (business logic)
 - **Task**: Plain data object holding task configuration
 - **Filters**: Determine when tasks should run (Cron, DateTime, Closure, Boolean, Environment)
