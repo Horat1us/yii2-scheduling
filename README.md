@@ -306,6 +306,8 @@ $runner->on(TaskRunner::EVENT_BEFORE_TASK, function (BeforeTaskEvent $event) {
 $runner->on(TaskRunner::EVENT_AFTER_TASK, function (AfterTaskEvent $event) {
     if ($event->isSuccessful()) {
         echo "Success! Took {$event->executionTime}s\n";
+    } elseif ($event->timedOut) {
+        echo "Timed out after {$event->task->getTimeout()}s\n";
     } else {
         echo "Failed: " . $event->getErrorOutput() . "\n";
     }
@@ -314,6 +316,7 @@ $runner->on(TaskRunner::EVENT_AFTER_TASK, function (AfterTaskEvent $event) {
 
 All due tasks start at once, so `EVENT_BEFORE_TASK` is triggered for every task first.
 `EVENT_AFTER_TASK` is triggered for each task as soon as all its commands finish, in completion order.
+`AfterTaskEvent::$timedOut` is `true` when a command was stopped because the task exceeded its timeout.
 
 ### Built-in Logging Behavior
 
@@ -329,6 +332,37 @@ Logging is automatically enabled via `LoggingBehavior` (uses Yii2 logger):
             'categories' => ['schedule'],
             'logFile' => '@runtime/logs/schedule.log',
             'levels' => ['info', 'error'],
+        ],
+    ],
+],
+```
+
+Messages it logs:
+
+| Level | Message | Option |
+|-------|---------|--------|
+| info | `Starting task: <description> (<n> commands, <n> filters)` | `logStart` |
+| info | `Task completed: <description> (<n> processes, <time>s)` | `logSuccess` |
+| info | `Task output:` followed by the commands' standard output | `logOutput` |
+| error | `Task failed: <description>` | always |
+| error | `Task timed out after <timeout>s: <description>` | always |
+| error | `Task error output:` followed by the commands' error output | `logErrorOutput` |
+
+All options default to `true`. Failure messages have no run details, so error trackers such as Sentry group them by task.
+
+To log only failures:
+
+```php
+// In config
+'container' => [
+    'definitions' => [
+        Horat1us\Yii\Schedule\Bootstrap::class => [
+            'loggingBehavior' => [
+                'class' => Horat1us\Yii\Schedule\Behaviors\LoggingBehavior::class,
+                'logStart' => false,
+                'logSuccess' => false,
+                'logOutput' => false,
+            ],
         ],
     ],
 ],
