@@ -11,9 +11,10 @@ use Symfony\Component\Process\Process;
 use yii\base\Component;
 
 /**
- * TaskRunner executes scheduled tasks by running their commands in parallel.
+ * TaskRunner executes scheduled tasks by running all their commands in parallel.
  *
  * It manages process execution, handles timeouts, and triggers events.
+ * Tasks don't wait for each other: a slow or timed out task doesn't delay the rest.
  *
  * Usage:
  * ```php
@@ -34,7 +35,10 @@ class TaskRunner extends Component
     public const EVENT_AFTER_TASK = 'afterTask';
 
     /**
-     * Run multiple tasks, executing all their commands in parallel.
+     * Run multiple tasks in parallel.
+     *
+     * All tasks are started at once, then the after event is triggered for each task as soon as
+     * all its commands have finished.
      *
      * @param TaskInterface[] $tasks Tasks to execute
      * @param \DateTimeInterface $scheduledTime The scheduled execution time
@@ -42,8 +46,14 @@ class TaskRunner extends Component
      */
     public function runTasks(array $tasks, \DateTimeInterface $scheduledTime): void
     {
-        foreach ($tasks as $task) {
-            $this->runTask($task, $scheduledTime);
+        $runs = [];
+        try {
+            foreach ($tasks as $task) {
+                $runs[] = $this->startTask($task, $scheduledTime);
+            }
+        } finally {
+            // Tasks that already started are waited for even if a later one fails to start
+            $this->waitForTasks($runs, $scheduledTime);
         }
     }
 
@@ -55,6 +65,18 @@ class TaskRunner extends Component
      * @return void
      */
     public function runTask(TaskInterface $task, \DateTimeInterface $scheduledTime): void
+    {
+        $this->runTasks([$task], $scheduledTime);
+    }
+
+    /**
+     * Trigger the before event and start all task commands.
+     *
+     * @param TaskInterface $task
+     * @param \DateTimeInterface $scheduledTime
+     * @return array{task: TaskInterface, processes: Process[], startTime: float}
+     */
+    private function startTask(TaskInterface $task, \DateTimeInterface $scheduledTime): array
     {
         // Trigger before event
         $this->trigger(self::EVENT_BEFORE_TASK, new BeforeTaskEvent($task, $scheduledTime));
@@ -70,33 +92,57 @@ class TaskRunner extends Component
             $processes[] = $process;
         }
 
-        // Monitor all processes until they complete
-        $this->waitForProcesses($processes);
-
-        $executionTime = microtime(true) - $startTime;
-
-        // Trigger after event
-        $this->trigger(
-            self::EVENT_AFTER_TASK,
-            new AfterTaskEvent($task, $scheduledTime, $processes, $executionTime)
-        );
+        return [
+            'task' => $task,
+            'processes' => $processes,
+            'startTime' => $startTime,
+        ];
     }
 
     /**
-     * Wait for all processes to complete, checking timeouts.
+     * Wait for all started tasks, checking timeouts and triggering the after event as each task completes.
      *
-     * @param Process[] $processes
+     * @param array<array{task: TaskInterface, processes: Process[], startTime: float}> $runs
+     * @param \DateTimeInterface $scheduledTime
      * @return void
      */
-    private function waitForProcesses(array $processes): void
+    private function waitForTasks(array $runs, \DateTimeInterface $scheduledTime): void
     {
-        if (empty($processes)) {
-            return;
+        while (!empty($runs)) {
+            foreach ($runs as $index => $run) {
+                if ($this->isRunning($run['processes'])) {
+                    continue;
+                }
+                unset($runs[$index]);
+
+                $executionTime = microtime(true) - $run['startTime'];
+
+                // Trigger after event
+                $this->trigger(
+                    self::EVENT_AFTER_TASK,
+                    new AfterTaskEvent($run['task'], $scheduledTime, $run['processes'], $executionTime)
+                );
+            }
+
+            if (!empty($runs)) {
+                // Small sleep to avoid CPU spinning
+                usleep(100000); // 0.1 seconds
+            }
         }
+    }
 
-        $iterator = new \InfiniteIterator(new \ArrayIterator($processes));
-
-        foreach ($iterator as $index => $process) {
+    /**
+     * Check timeouts and whether any of the processes is still running.
+     *
+     * Every process is polled, so their output pipes are read even while other processes run.
+     *
+     * @param Process[] $processes
+     * @return bool
+     */
+    private function isRunning(array $processes): bool
+    {
+        $isRunning = false;
+        foreach ($processes as $process) {
             // Check timeout
             try {
                 $process->checkTimeout();
@@ -104,18 +150,11 @@ class TaskRunner extends Component
                 // Process timed out, it's already stopped by checkTimeout()
             }
 
-            // Remove completed processes
-            if (!$process->isRunning()) {
-                unset($processes[$index]);
+            if ($process->isRunning()) {
+                $isRunning = true;
             }
-
-            // All processes completed
-            if (empty($processes)) {
-                break;
-            }
-
-            // Small sleep to avoid CPU spinning
-            usleep(100000); // 0.1 seconds
         }
+
+        return $isRunning;
     }
 }
