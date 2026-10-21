@@ -82,6 +82,24 @@ class LoggingBehaviorTest extends TestCase
         );
     }
 
+    public function testLogsOnlyFailuresWhenOtherMessagesAreDisabled(): void
+    {
+        $behavior = new LoggingBehavior();
+        $behavior->logStart = false;
+        $behavior->logSuccess = false;
+        $behavior->logOutput = false;
+        $behavior->logErrorOutput = false;
+
+        $behavior->onBeforeTask(new BeforeTaskEvent($this->createTask(), new \DateTime()));
+        $behavior->onAfterTask($this->createEvent(successful: true, output: 'Exported 2 requests'));
+        $behavior->onAfterTask($this->createEvent(successful: false, errorOutput: 'Error: Connection refused'));
+
+        $this->assertSame(
+            [[Logger::LEVEL_ERROR, 'schedule', 'Task failed: Export']],
+            $this->getLoggedMessages()
+        );
+    }
+
     private function createTask(): Task
     {
         return new Task(
