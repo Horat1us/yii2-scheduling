@@ -3,6 +3,7 @@
   "description": "Yii2 Scheduling",
   "type": "library",
   "require": {
+    "php": ">=8.4",
     "yiisoft/yii2": "^2.0.52",
     "nesbot/carbon": "^3.8.4",
     "symfony/process": "^6.0||^7.0",
